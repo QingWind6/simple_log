@@ -117,8 +117,6 @@ public:
         if (GetOutputCb()) {
             GetOutputCb()(std::string_view(buffer.data(), buffer.size()));
         }
-        
-        // 函数结束，lock_guard 析构，自动调用 unlock
     }
 
     // Helpers
@@ -126,6 +124,10 @@ public:
     template <typename... Args> static void warn(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::WARN, fmt, std::forward<Args>(args)...); }
     template <typename... Args> static void error(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::ERROR, fmt, std::forward<Args>(args)...); }
     template <typename... Args> static void debug(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::DEBUG, fmt, std::forward<Args>(args)...); }
+    static void info(std::string_view tag, std::string_view msg) { log(LogLevel::INFO, "[{}] {}", tag, msg); }
+    static void warn(std::string_view tag, std::string_view msg) { log(LogLevel::WARN, "[{}] {}", tag, msg); }
+    static void error(std::string_view tag, std::string_view msg) { log(LogLevel::ERROR, "[{}] {}", tag, msg); }
+    static void debug(std::string_view tag, std::string_view msg) { log(LogLevel::DEBUG, "[{}] {}", tag, msg); }
 
 private:
     static OutputCallback& GetOutputCb() { static OutputCallback cb; return cb; }
