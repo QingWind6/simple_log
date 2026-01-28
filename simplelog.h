@@ -117,13 +117,19 @@ public:
         if (GetOutputCb()) {
             GetOutputCb()(std::string_view(buffer.data(), buffer.size()));
         }
+        
+        // 函数结束，lock_guard 析构，自动调用 unlock
     }
 
     // Helpers
-    template <typename... Args> static void info(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::INFO, fmt, std::forward<Args>(args)...); }
-    template <typename... Args> static void warn(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::WARN, fmt, std::forward<Args>(args)...); }
-    template <typename... Args> static void error(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::ERROR, fmt, std::forward<Args>(args)...); }
-    template <typename... Args> static void debug(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::DEBUG, fmt, std::forward<Args>(args)...); }
+    template <typename... Args> static void infof(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::INFO, fmt, std::forward<Args>(args)...); }
+    template <typename... Args> static void warnf(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::WARN, fmt, std::forward<Args>(args)...); }
+    template <typename... Args> static void errorf(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::ERROR, fmt, std::forward<Args>(args)...); }
+    template <typename... Args> static void debugf(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::DEBUG, fmt, std::forward<Args>(args)...); }
+    static void info(std::string_view msg) { log(LogLevel::INFO, "{}", msg); }
+    static void warn(std::string_view msg) { log(LogLevel::WARN, "{}", msg); }
+    static void error(std::string_view msg) { log(LogLevel::ERROR, "{}", msg); }
+    static void debug(std::string_view msg) { log(LogLevel::DEBUG, "{}", msg); }
     static void info(std::string_view tag, std::string_view msg) { log(LogLevel::INFO, "[{}] {}", tag, msg); }
     static void warn(std::string_view tag, std::string_view msg) { log(LogLevel::WARN, "[{}] {}", tag, msg); }
     static void error(std::string_view tag, std::string_view msg) { log(LogLevel::ERROR, "[{}] {}", tag, msg); }
