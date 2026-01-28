@@ -99,14 +99,21 @@ public:
 
         // 颜色与标签
         const bool show_level = GetLevelTagEnabled();
-        const bool use_color = GetColorEnabled() && show_level;
+        const bool use_color = GetColorEnabled();
+        const char* color_code = "";
+        const char* tag = "";
+        switch (level) {
+            case LogLevel::INFO:  color_code = "\033[32m"; tag = "[INFO] "; break;
+            case LogLevel::WARN:  color_code = "\033[33m"; tag = "[WARN] "; break;
+            case LogLevel::ERROR: color_code = "\033[31m"; tag = "[ERRO] "; break;
+            case LogLevel::DEBUG: color_code = "\033[36m"; tag = "[DBUG] "; break;
+        }
+
+        if (use_color) {
+            fmt::format_to(std::back_inserter(buffer), "{}", color_code);
+        }
         if (show_level) {
-            switch (level) {
-                case LogLevel::INFO:  fmt::format_to(std::back_inserter(buffer), "{}[INFO] ",  use_color ? "\033[32m" : ""); break;
-                case LogLevel::WARN:  fmt::format_to(std::back_inserter(buffer), "{}[WARN] ",  use_color ? "\033[33m" : ""); break;
-                case LogLevel::ERROR: fmt::format_to(std::back_inserter(buffer), "{}[ERRO] ",  use_color ? "\033[31m" : ""); break;
-                case LogLevel::DEBUG: fmt::format_to(std::back_inserter(buffer), "{}[DBUG] ",  use_color ? "\033[36m" : ""); break;
-            }
+            fmt::format_to(std::back_inserter(buffer), "{}", tag);
         }
 
         // 内容
