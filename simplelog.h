@@ -71,8 +71,9 @@ public:
     static void setOutput(OutputCallback cb) { GetOutputCb() = cb; }
     static void setTime(TimeCallback cb) { GetTimeCb() = cb; }
     static void setColorEnabled(bool on) { GetColorEnabled() = on; }
+    static void setLevelTagEnabled(bool on) { GetLevelTagEnabled() = on; }
     
-    // 配置锁 (传入加锁和解锁的函数)
+    // 配置锁
     static void setLock(LockCallback lock_cb, LockCallback unlock_cb) {
         GetLockCb() = lock_cb;
         GetUnlockCb() = unlock_cb;
@@ -80,7 +81,7 @@ public:
 
     template <typename... Args>
     static void log(LogLevel level, fmt::format_string<Args...> format, Args&&... args) {
-        // --- 1. 自动加锁 (RAII) ---
+        // --- 1. 自动加锁 ---
         struct AutoLock {
             AutoLock() { if (GetLockCb()) GetLockCb()(); }
             ~AutoLock() { if (GetUnlockCb()) GetUnlockCb()(); }
@@ -96,12 +97,15 @@ public:
         }
 
         // 颜色与标签
-        const bool use_color = GetColorEnabled();
-        switch (level) {
-            case LogLevel::INFO:  fmt::format_to(std::back_inserter(buffer), "{}[INFO] ",  use_color ? "\033[32m" : ""); break;
-            case LogLevel::WARN:  fmt::format_to(std::back_inserter(buffer), "{}[WARN] ",  use_color ? "\033[33m" : ""); break;
-            case LogLevel::ERROR: fmt::format_to(std::back_inserter(buffer), "{}[ERRO] ",  use_color ? "\033[31m" : ""); break;
-            case LogLevel::DEBUG: fmt::format_to(std::back_inserter(buffer), "{}[DBUG] ",  use_color ? "\033[36m" : ""); break;
+        const bool show_level = GetLevelTagEnabled();
+        const bool use_color = GetColorEnabled() && show_level;
+        if (show_level) {
+            switch (level) {
+                case LogLevel::INFO:  fmt::format_to(std::back_inserter(buffer), "{}[INFO] ",  use_color ? "\033[32m" : ""); break;
+                case LogLevel::WARN:  fmt::format_to(std::back_inserter(buffer), "{}[WARN] ",  use_color ? "\033[33m" : ""); break;
+                case LogLevel::ERROR: fmt::format_to(std::back_inserter(buffer), "{}[ERRO] ",  use_color ? "\033[31m" : ""); break;
+                case LogLevel::DEBUG: fmt::format_to(std::back_inserter(buffer), "{}[DBUG] ",  use_color ? "\033[36m" : ""); break;
+            }
         }
 
         // 内容
@@ -142,4 +146,5 @@ private:
     static LockCallback& GetLockCb() { static LockCallback cb; return cb; }
     static LockCallback& GetUnlockCb() { static LockCallback cb; return cb; }
     static bool& GetColorEnabled() { static bool color_on = true; return color_on; }
+    static bool& GetLevelTagEnabled() { static bool level_tag_on = true; return level_tag_on; }
 };
