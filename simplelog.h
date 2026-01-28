@@ -65,13 +65,14 @@ class SimpleLog {
 public:
     using OutputCallback = std::function<void(std::string_view)>;
     using TimeCallback = std::function<uint32_t()>;
-    using LockCallback = std::function<void()>; // 锁的回调类型
+    using LockCallback = std::function<void()>;
 
     // 配置函数
     static void setOutput(OutputCallback cb) { GetOutputCb() = cb; }
     static void setTime(TimeCallback cb) { GetTimeCb() = cb; }
     static void setColorEnabled(bool on) { GetColorEnabled() = on; }
     static void setLevelTagEnabled(bool on) { GetLevelTagEnabled() = on; }
+    static void setTimestampEnabled(bool on) { GetTimestampEnabled() = on; }
     
     // 配置锁
     static void setLock(LockCallback lock_cb, LockCallback unlock_cb) {
@@ -91,7 +92,7 @@ public:
         fmt::memory_buffer buffer;
 
         // 时间戳
-        if (GetTimeCb()) {
+        if (GetTimestampEnabled() && GetTimeCb()) {
             uint32_t now_ms = GetTimeCb()();
             fmt::format_to(std::back_inserter(buffer), "[{:>9.3f}] ", now_ms / 1000.0f);
         }
@@ -147,4 +148,5 @@ private:
     static LockCallback& GetUnlockCb() { static LockCallback cb; return cb; }
     static bool& GetColorEnabled() { static bool color_on = true; return color_on; }
     static bool& GetLevelTagEnabled() { static bool level_tag_on = true; return level_tag_on; }
+    static bool& GetTimestampEnabled() { static bool timestamp_on = true; return timestamp_on; }
 };
