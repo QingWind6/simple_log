@@ -59,7 +59,7 @@
 #include <functional>
 #include <string_view>
 
-enum class LogLevel { INFO, WARN, ERROR, DEBUG };
+enum class LogLevel { INFO, WARN, ERROR, DEBUG, VERBOSE };
 
 class SimpleLog {
 public:
@@ -111,6 +111,7 @@ public:
             case LogLevel::WARN:  color_code = "\033[33m"; tag = "[WARN] "; break;
             case LogLevel::ERROR: color_code = "\033[31m"; tag = "[ERRO] "; break;
             case LogLevel::DEBUG: color_code = "\033[36m"; tag = "[DBUG] "; break;
+            case LogLevel::VERBOSE: color_code = "\033[90m"; tag = "[VERB] "; break;
         }
 
         if (use_color) {
@@ -142,14 +143,17 @@ public:
     template <typename... Args> static void warnf(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::WARN, fmt, std::forward<Args>(args)...); }
     template <typename... Args> static void errorf(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::ERROR, fmt, std::forward<Args>(args)...); }
     template <typename... Args> static void debugf(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::DEBUG, fmt, std::forward<Args>(args)...); }
+    template <typename... Args> static void verbosef(fmt::format_string<Args...> fmt, Args&&... args) { log(LogLevel::VERBOSE, fmt, std::forward<Args>(args)...); }
     static void info(std::string_view msg) { log(LogLevel::INFO, "{}", msg); }
     static void warn(std::string_view msg) { log(LogLevel::WARN, "{}", msg); }
     static void error(std::string_view msg) { log(LogLevel::ERROR, "{}", msg); }
     static void debug(std::string_view msg) { log(LogLevel::DEBUG, "{}", msg); }
+    static void verbose(std::string_view msg) { log(LogLevel::VERBOSE, "{}", msg); }
     static void info(std::string_view tag, std::string_view msg) { log(LogLevel::INFO, "[{}] {}", tag, msg); }
     static void warn(std::string_view tag, std::string_view msg) { log(LogLevel::WARN, "[{}] {}", tag, msg); }
     static void error(std::string_view tag, std::string_view msg) { log(LogLevel::ERROR, "[{}] {}", tag, msg); }
     static void debug(std::string_view tag, std::string_view msg) { log(LogLevel::DEBUG, "[{}] {}", tag, msg); }
+    static void verbose(std::string_view tag, std::string_view msg) { log(LogLevel::VERBOSE, "[{}] {}", tag, msg); }
 
 private:
     static OutputCallback& GetOutputCb() { static OutputCallback cb; return cb; }
@@ -164,10 +168,11 @@ private:
     static bool ShouldLog(LogLevel level) { return LevelRank(level) >= LevelRank(GetLogLevel()); }
     static int LevelRank(LogLevel level) {
         switch (level) {
-            case LogLevel::DEBUG: return 0;
-            case LogLevel::INFO: return 1;
-            case LogLevel::WARN: return 2;
-            case LogLevel::ERROR: return 3;
+            case LogLevel::VERBOSE: return 0;
+            case LogLevel::DEBUG: return 1;
+            case LogLevel::INFO: return 2;
+            case LogLevel::WARN: return 3;
+            case LogLevel::ERROR: return 4;
         }
         return 0;
     }
