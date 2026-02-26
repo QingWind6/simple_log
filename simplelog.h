@@ -73,6 +73,7 @@ public:
     static void setColorEnabled(bool on) { GetColorEnabled() = on; }
     static void setLevelTagEnabled(bool on) { GetLevelTagEnabled() = on; }
     static void setTimestampEnabled(bool on) { GetTimestampEnabled() = on; }
+    static void setLogLevel(LogLevel level) { GetLogLevel() = level; }
     
     // 配置锁
     static void setLock(LockCallback lock_cb, LockCallback unlock_cb) {
@@ -82,6 +83,9 @@ public:
 
     template <typename... Args>
     static void log(LogLevel level, fmt::format_string<Args...> format, Args&&... args) {
+        if (!ShouldLog(level)) {
+            return;
+        }
         // --- 1. 自动加锁 ---
         struct AutoLock {
             AutoLock() { if (GetLockCb()) GetLockCb()(); }
@@ -156,4 +160,15 @@ private:
     static bool& GetColorEnabled() { static bool color_on = true; return color_on; }
     static bool& GetLevelTagEnabled() { static bool level_tag_on = true; return level_tag_on; }
     static bool& GetTimestampEnabled() { static bool timestamp_on = true; return timestamp_on; }
+    static LogLevel& GetLogLevel() { static LogLevel level = LogLevel::DEBUG; return level; }
+    static bool ShouldLog(LogLevel level) { return LevelRank(level) >= LevelRank(GetLogLevel()); }
+    static int LevelRank(LogLevel level) {
+        switch (level) {
+            case LogLevel::DEBUG: return 0;
+            case LogLevel::INFO: return 1;
+            case LogLevel::WARN: return 2;
+            case LogLevel::ERROR: return 3;
+        }
+        return 0;
+    }
 };
