@@ -56,8 +56,11 @@
 
 #include "core.h"
 #include "format.h"
+#include <cstdarg>
+#include <cstdio>
 #include <functional>
 #include <string_view>
+#include <vector>
 
 enum class LogLevel { INFO, WARN, ERROR, DEBUG, VERBOSE };
 
@@ -155,7 +158,77 @@ public:
     static void debug(std::string_view tag, std::string_view msg) { log(LogLevel::DEBUG, "[{}] {}", tag, msg); }
     static void verbose(std::string_view tag, std::string_view msg) { log(LogLevel::VERBOSE, "[{}] {}", tag, msg); }
 
+    // printf-style helpers for legacy call sites
+    static void infoln(std::string_view msg) { log(LogLevel::INFO, "{}", msg); }
+    static void warningln(std::string_view msg) { log(LogLevel::WARN, "{}", msg); }
+    static void warnln(std::string_view msg) { log(LogLevel::WARN, "{}", msg); }
+    static void errorln(std::string_view msg) { log(LogLevel::ERROR, "{}", msg); }
+    static void fatalln(std::string_view msg) { log(LogLevel::ERROR, "{}", msg); }
+    static void debugln(std::string_view msg) { log(LogLevel::DEBUG, "{}", msg); }
+    static void verboseln(std::string_view msg) { log(LogLevel::VERBOSE, "{}", msg); }
+
+    static void infoln(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vlogf(LogLevel::INFO, format, args);
+        va_end(args);
+    }
+    static void warningln(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vlogf(LogLevel::WARN, format, args);
+        va_end(args);
+    }
+    static void warnln(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vlogf(LogLevel::WARN, format, args);
+        va_end(args);
+    }
+    static void errorln(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vlogf(LogLevel::ERROR, format, args);
+        va_end(args);
+    }
+    static void fatalln(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vlogf(LogLevel::ERROR, format, args);
+        va_end(args);
+    }
+    static void debugln(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vlogf(LogLevel::DEBUG, format, args);
+        va_end(args);
+    }
+    static void verboseln(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vlogf(LogLevel::VERBOSE, format, args);
+        va_end(args);
+    }
+
 private:
+    static void vlogf(LogLevel level, const char* format, va_list args) {
+        if (!format || !ShouldLog(level)) {
+            return;
+        }
+
+        va_list args_copy;
+        va_copy(args_copy, args);
+        const int needed = std::vsnprintf(nullptr, 0, format, args_copy);
+        va_end(args_copy);
+        if (needed < 0) {
+            return;
+        }
+
+        std::vector<char> buffer(static_cast<size_t>(needed) + 1);
+        std::vsnprintf(buffer.data(), buffer.size(), format, args);
+        log(level, "{}", std::string_view(buffer.data(), static_cast<size_t>(needed)));
+    }
+
     static OutputCallback& GetOutputCb() { static OutputCallback cb; return cb; }
     static TimeCallback& GetTimeCb() { static TimeCallback cb; return cb; }
     // 存储锁回调
