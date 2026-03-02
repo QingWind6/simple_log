@@ -1,3 +1,5 @@
+#pragma once
+
 #ifdef F
 #undef F
 #endif
@@ -51,4 +53,5 @@
 #endif
 
 #define FMT_HEADER_ONLY
-#include "format.h"
+
+// #include "format.h"

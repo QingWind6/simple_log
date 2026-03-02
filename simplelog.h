@@ -1,8 +1,7 @@
 #pragma once
 
-#include "core.h"
 #include "fmt_wrapper.h"
-#include "format.h"
+#include "core.h"
 #include <array>
 #include <cstdarg>
 #include <cstdio>
