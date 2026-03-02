@@ -1,66 +1,20 @@
 #pragma once
 
-#ifdef F
-#undef F
-#endif
-#ifdef B0
-#undef B0
-#endif
-#ifdef B1
-#undef B1
-#endif
-#ifdef B2
-#undef B2
-#endif
-#ifdef B3
-#undef B3
-#endif
-#ifdef B4
-#undef B4
-#endif
-#ifdef B5
-#undef B5
-#endif
-#ifdef B6
-#undef B6
-#endif
-#ifdef B7
-#undef B7
-#endif
-#ifdef B8
-#undef B8
-#endif
-#ifdef B9
-#undef B9
-#endif
-#ifdef B10
-#undef B10
-#endif
-#ifdef B11
-#undef B11
-#endif
-#ifdef B12
-#undef B12
-#endif
-#ifdef B13
-#undef B13
-#endif
-#ifdef B14
-#undef B14
-#endif
-#ifdef B15
-#undef B15
-#endif
-
-#define FMT_HEADER_ONLY
-
 #include "core.h"
+#include "fmt_wrapper.h"
 #include "format.h"
+#include <array>
 #include <cstdarg>
 #include <cstdio>
+#include <cstring>
 #include <functional>
 #include <string_view>
-#include <vector>
+
+#if defined(__GNUC__) || defined(__clang__)
+#define SIMPLELOG_PRINTF_ATTR(fmt_idx, first_arg) __attribute__((format(printf, fmt_idx, first_arg)))
+#else
+#define SIMPLELOG_PRINTF_ATTR(fmt_idx, first_arg)
+#endif
 
 enum class LogLevel { INFO, WARN, ERROR, DEBUG, VERBOSE };
 
@@ -96,7 +50,8 @@ public:
         } lock_guard; 
 
         // --- 2. 格式化逻辑 ---
-        fmt::memory_buffer buffer;
+        // fmt::memory_buffer buffer;
+        fmt::basic_memory_buffer<char, 128> buffer;
 
         // 时间戳
         if (GetTimestampEnabled() && GetTimeCb()) {
@@ -167,43 +122,43 @@ public:
     static void debugln(std::string_view msg) { log(LogLevel::DEBUG, "{}", msg); }
     static void verboseln(std::string_view msg) { log(LogLevel::VERBOSE, "{}", msg); }
 
-    static void infoln(const char* format, ...) {
+    static void infoln(const char* format, ...) SIMPLELOG_PRINTF_ATTR(1, 2) {
         va_list args;
         va_start(args, format);
         vlogf(LogLevel::INFO, format, args);
         va_end(args);
     }
-    static void warningln(const char* format, ...) {
+    static void warningln(const char* format, ...) SIMPLELOG_PRINTF_ATTR(1, 2) {
         va_list args;
         va_start(args, format);
         vlogf(LogLevel::WARN, format, args);
         va_end(args);
     }
-    static void warnln(const char* format, ...) {
+    static void warnln(const char* format, ...) SIMPLELOG_PRINTF_ATTR(1, 2) {
         va_list args;
         va_start(args, format);
         vlogf(LogLevel::WARN, format, args);
         va_end(args);
     }
-    static void errorln(const char* format, ...) {
+    static void errorln(const char* format, ...) SIMPLELOG_PRINTF_ATTR(1, 2) {
         va_list args;
         va_start(args, format);
         vlogf(LogLevel::ERROR, format, args);
         va_end(args);
     }
-    static void fatalln(const char* format, ...) {
+    static void fatalln(const char* format, ...) SIMPLELOG_PRINTF_ATTR(1, 2) {
         va_list args;
         va_start(args, format);
         vlogf(LogLevel::ERROR, format, args);
         va_end(args);
     }
-    static void debugln(const char* format, ...) {
+    static void debugln(const char* format, ...) SIMPLELOG_PRINTF_ATTR(1, 2) {
         va_list args;
         va_start(args, format);
         vlogf(LogLevel::DEBUG, format, args);
         va_end(args);
     }
-    static void verboseln(const char* format, ...) {
+    static void verboseln(const char* format, ...) SIMPLELOG_PRINTF_ATTR(1, 2) {
         va_list args;
         va_start(args, format);
         vlogf(LogLevel::VERBOSE, format, args);
@@ -216,17 +171,28 @@ private:
             return;
         }
 
+        constexpr size_t kPrintfBufferSize = 320;
+        std::array<char, kPrintfBufferSize> stack_buf{};
+
         va_list args_copy;
         va_copy(args_copy, args);
-        const int needed = std::vsnprintf(nullptr, 0, format, args_copy);
+        const int written = std::vsnprintf(stack_buf.data(), stack_buf.size(), format, args_copy);
         va_end(args_copy);
-        if (needed < 0) {
+        if (written < 0) {
             return;
         }
 
-        std::vector<char> buffer(static_cast<size_t>(needed) + 1);
-        std::vsnprintf(buffer.data(), buffer.size(), format, args);
-        log(level, "{}", std::string_view(buffer.data(), static_cast<size_t>(needed)));
+        size_t len = strnlen(stack_buf.data(), stack_buf.size());
+        if (static_cast<size_t>(written) >= stack_buf.size() && stack_buf.size() > 4) {
+            // Keep log path allocation-free: truncate long printf payloads.
+            stack_buf[stack_buf.size() - 4] = '.';
+            stack_buf[stack_buf.size() - 3] = '.';
+            stack_buf[stack_buf.size() - 2] = '.';
+            stack_buf[stack_buf.size() - 1] = '\0';
+            len = stack_buf.size() - 1;
+        }
+
+        log(level, "{}", std::string_view(stack_buf.data(), len));
     }
 
     static OutputCallback& GetOutputCb() { static OutputCallback cb; return cb; }
